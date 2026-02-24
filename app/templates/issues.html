@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>Проблемы PDF</title></head>
+<body>
+<h1>PDF missing</h1>
+<p><a href="/">Проект</a></p>
+<table border="1" cellpadding="4" cellspacing="0">
+<tr><th>Позиция</th><th>DXF</th><th>Наименование</th></tr>
+{% for r in rows %}
+<tr><td>{{ r.position }}</td><td>{{ r.dxf_name }}</td><td>{{ r.part_name }}</td></tr>
+{% endfor %}
+</table>
+</body>
+</html>

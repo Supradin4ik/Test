@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>{{ stage }}</title></head>
+<body>
+<h1>{{ stage|upper }}</h1>
+<p><a href="/">Проект</a> | <a href="/laser">Лазер</a> | <a href="/bend">Гибка</a> | <a href="/weld">Сварка</a> | <a href="/qc">ОТК</a></p>
+<table border="1" cellpadding="4" cellspacing="0">
+  <tr><th>Материал</th><th>Толщина</th><th>DXF</th><th>Наименование</th><th>qty_day</th><th>Зона</th><th>Статус</th><th>Действие</th></tr>
+  {% for r in rows %}
+    <tr>
+      <td>{{ r.material }}</td><td>{{ r.thickness }}</td><td>{{ r.dxf_name }}</td><td>{{ r.part_name }}</td><td>{{ r.qty_day }}</td><td>{{ r.zone }}</td><td>{{ r[column] }}</td>
+      <td>
+        <form action="/stage/{{ stage }}/{{ r.id }}" method="post" style="display:inline">
+          <input type="hidden" name="status" value="in_progress">
+          <button type="submit">Взял в работу</button>
+        </form>
+        <form action="/stage/{{ stage }}/{{ r.id }}" method="post" style="display:inline">
+          <input type="hidden" name="status" value="done">
+          <button type="submit">Завершил</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+</table>
+</body>
+</html>

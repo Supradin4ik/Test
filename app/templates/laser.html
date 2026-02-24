@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>Лазер</title></head>
+<body>
+<h1>Лазер</h1>
+<p><a href="/">Проект</a> | <a href="/bend">Гибка</a> | <a href="/weld">Сварка</a> | <a href="/qc">ОТК</a> | <a href="/issues">Проблемы PDF</a></p>
+<p><b>Путь проекта для DXF:</b> {{ settings.project_root_path if settings else '' }}</p>
+{% for g in groups %}
+  <h3>{{ g.material }} + {{ g.thickness }} (деталей: {{ g.items }}, qty/day: {{ g.qty }}, cut_done: {{ g.done }})</h3>
+  <table border="1" cellpadding="4" cellspacing="0">
+    <tr><th>Позиция</th><th>DXF</th><th>Наименование</th><th>qty_day</th><th>PDF</th><th>Статус</th><th>Зона</th><th>Действия</th></tr>
+    {% for p in parts if p.material == g.material and p.thickness == g.thickness %}
+      <tr>
+        <td>{{ p.position }}</td>
+        <td>{{ p.dxf_name }}</td>
+        <td>{{ p.part_name }}</td>
+        <td>{{ p.qty_day }}</td>
+        <td>{% if p.pdf_missing %}PDF missing{% else %}<a href="/pdf/{{ p.id }}" target="_blank">Открыть PDF</a>{% endif %}</td>
+        <td>{{ p.laser_status }}</td>
+        <td>{{ p.zone }}</td>
+        <td>
+          <form action="/laser/{{ p.id }}/status" method="post" style="display:inline">
+            <input type="hidden" name="status" value="in_progress">
+            <button type="submit">Взял в работу</button>
+          </form>
+          <form action="/laser/{{ p.id }}/status" method="post" style="display:inline">
+            <input type="hidden" name="status" value="cut_done">
+            <input type="text" name="zone" placeholder="зона/поддон" required>
+            <button type="submit">Завершил резку</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endfor %}
+</body>
+</html>

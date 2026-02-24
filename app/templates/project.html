@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>Проект</title></head>
+<body>
+<h1>Проект</h1>
+<form action="/generate" method="post" enctype="multipart/form-data">
+  <label>Excel ORDER: <input type="file" name="excel_file" required></label><br>
+  <label>project_root_path: <input type="text" name="project_root_path" value="{{ settings.project_root_path if settings else '' }}" required style="width:480px"></label><br>
+  <label>standard_root_path: <input type="text" name="standard_root_path" value="{{ settings.standard_root_path if settings else '' }}" required style="width:480px"></label><br>
+  <label>daily_kits: <input type="number" name="daily_kits" value="{{ settings.daily_kits if settings else 5 }}" required></label><br>
+  <label>total_kits: <input type="number" name="total_kits" value="{{ settings.total_kits if settings else 100 }}" required></label><br>
+  <button type="submit">Сгенерировать наряды</button>
+</form>
+<form action="/reindex" method="post" style="margin-top: 12px;">
+  <input type="hidden" name="project_root_path" value="{{ settings.project_root_path if settings else '' }}">
+  <input type="hidden" name="standard_root_path" value="{{ settings.standard_root_path if settings else '' }}">
+  <button type="submit">Переиндексировать PDF</button>
+</form>
+<p><a href="/laser">Лазер</a> | <a href="/bend">Гибка</a> | <a href="/weld">Сварка</a> | <a href="/qc">ОТК</a> | <a href="/issues">Проблемы PDF ({{ missing }})</a></p>
+</body>
+</html>
