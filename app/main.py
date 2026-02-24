@@ -27,13 +27,51 @@ def read_settings(conn):
     return conn.execute("SELECT * FROM project_settings WHERE id = 1").fetchone()
 
 
+def parse_order_sheet(excel_path: Path) -> list[dict]:
+    wb = load_workbook(excel_path, data_only=True)
+    sheet = wb["ORDER"]
+    parts = []
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        if not row:
+            continue
+        dxf_name = str(row[1] or "").strip()
+        if not dxf_name:
+            continue
+        parts.append(
+            {
+                "dxf_name": dxf_name,
+                "name": str(row[2] or "").strip(),
+                "qty_per_kit": float(row[3] or 0),
+                "thickness": str(row[4] or "").strip(),
+                "material": str(row[5] or "").strip(),
+            }
+        )
+    return parts
+
+
 @app.get("/", response_class=HTMLResponse)
-def project_page(request: Request):
+def root_page(request: Request):
     conn = get_conn()
     settings = read_settings(conn)
     missing = conn.execute("SELECT COUNT(*) AS c FROM parts WHERE pdf_missing = 1").fetchone()["c"]
     conn.close()
     return templates.TemplateResponse("project.html", {"request": request, "settings": settings, "missing": missing})
+
+
+@app.get("/project", response_class=HTMLResponse)
+def project_page(request: Request):
+    return templates.TemplateResponse("project_import.html", {"request": request})
+
+
+@app.post("/project/import_excel")
+def import_excel(excel_file: UploadFile = File(...)):
+    upload_dir = Path("uploads")
+    upload_dir.mkdir(exist_ok=True)
+    excel_path = upload_dir / excel_file.filename
+    excel_path.write_bytes(excel_file.file.read())
+
+    parts = parse_order_sheet(excel_path)
+    return {"rows": len(parts), "parts": parts}
 
 
 @app.post("/reindex")
