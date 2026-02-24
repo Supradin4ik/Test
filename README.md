@@ -2,13 +2,13 @@
 
 Стек: **FastAPI + SQLite + Jinja2 + openpyxl**.
 
-## Запуск
+## Запуск на Windows
 
-```bash
+```powershell
 python -m venv .venv
-source .venv/bin/activate
-pip install -e .[dev]
-uvicorn app.main:app --reload
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
 Открыть: http://127.0.0.1:8000
