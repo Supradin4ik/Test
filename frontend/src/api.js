@@ -17,7 +17,7 @@ export const uploadExcel = async (file, projectName) => {
   formData.append('file', file);
   formData.append('project_name', projectName);
 
-  const { data } = await api.post('/api/projects/upload-spec/', formData, {
+  const { data } = await api.post('/api/projects/upload-spec', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 

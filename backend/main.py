@@ -59,7 +59,7 @@ class ProductionLogResponse(BaseModel):
     timestamp: datetime
 
 
-@app.get("/ping")
+@app.get("/api/ping")
 async def ping() -> dict[str, str]:
     return {"status": "ok"}
 
@@ -69,7 +69,8 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/api/projects/upload-spec/")
+@app.post("/api/projects/upload-spec")
+@app.post("/api/projects/upload-spec/", include_in_schema=False)
 async def upload_spec(
     file: UploadFile = File(...),
     project_name: str = Form(...),

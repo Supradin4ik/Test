@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import {
   fetchProjects,
@@ -6,6 +7,20 @@ import {
   uploadExcel,
 } from './api';
 import UploadModal from './components/UploadModal';
+
+const getApiErrorMessage = (error, fallbackMessage) => {
+  if (axios.isAxiosError(error)) {
+    if (error.response?.data?.detail) {
+      return String(error.response.data.detail);
+    }
+
+    if (error.message === 'Network Error') {
+      return 'Сетевая ошибка. Проверьте, что backend запущен на http://127.0.0.1:8000.';
+    }
+  }
+
+  return fallbackMessage;
+};
 
 function ProgressBar({ value }) {
   return (
@@ -46,8 +61,8 @@ export default function App() {
       );
 
       setStatsByProject(Object.fromEntries(statsEntries));
-    } catch {
-      setError('Не удалось загрузить проекты. Проверьте доступность API.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не удалось загрузить проекты. Проверьте доступность API.'));
       setProjects([]);
     } finally {
       setIsLoading(false);
@@ -60,18 +75,26 @@ export default function App() {
 
   const handleUpload = async (file, projectName) => {
     try {
+      setError('');
       setIsUploading(true);
       await uploadExcel(file, projectName);
       setUploadOpen(false);
       await loadProjects();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не удалось загрузить файл. Проверьте доступность API.'));
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleToggleStatus = async (project) => {
-    await toggleProjectStatus(project.id, project.status);
-    await loadProjects();
+    try {
+      setError('');
+      await toggleProjectStatus(project.id, project.status);
+      await loadProjects();
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не удалось изменить статус проекта.'));
+    }
   };
 
   const rows = useMemo(
