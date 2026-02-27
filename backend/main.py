@@ -36,7 +36,6 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -79,6 +78,27 @@ async def upload_spec(
     file_bytes = await file.read()
     result = await parse_spec_to_db(file_bytes=file_bytes, project_name=project_name, db=db)
     return result
+
+
+@app.get("/api/projects")
+async def get_projects(db: AsyncSession = Depends(get_db)) -> list[dict[str, str | int]]:
+    projects = (
+        await db.scalars(
+            select(Project).order_by(Project.priority_index.asc(), Project.id.asc())
+        )
+    ).all()
+
+    return [
+        {
+            "id": project.id,
+            "name": project.name,
+            "status": project.status.value,
+            "priority_index": project.priority_index,
+            "total_units": project.total_units,
+            "blocks_count": project.blocks_count,
+        }
+        for project in projects
+    ]
 
 
 @app.get("/api/parts/{part_id}/history", response_model=list[ProductionLogResponse])
