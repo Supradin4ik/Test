@@ -31,16 +31,15 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-API_PREFIX = "/api"
-
-# Keep CORS fully open for local integration debugging.
-# NOTE: middleware must be registered before endpoint declarations.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+API_PREFIX = "/api/projects"
 
 
 class ProductionActionRequest(BaseModel):
@@ -71,7 +70,7 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post(f"{API_PREFIX}/projects/upload-spec")
+@app.post("/api/projects/upload-spec")
 async def upload_spec(
     file: UploadFile = File(...),
     project_name: str = Form(...),
@@ -82,7 +81,7 @@ async def upload_spec(
     return result
 
 
-@app.get(f"{API_PREFIX}/projects")
+@app.get(API_PREFIX)
 async def get_projects(db: AsyncSession = Depends(get_db)) -> list[dict[str, str | int]]:
     projects = (
         await db.scalars(
@@ -152,7 +151,7 @@ async def log_part_action(
     )
 
 
-@app.get(f"{API_PREFIX}/projects/{{project_id}}/stats")
+@app.get(f"{API_PREFIX}/{{project_id}}/stats")
 async def get_project_stats(project_id: int, db: AsyncSession = Depends(get_db)) -> dict:
     project = await db.get(Project, project_id)
     if project is None:
@@ -226,7 +225,7 @@ async def get_project_stats(project_id: int, db: AsyncSession = Depends(get_db))
     }
 
 
-@app.patch(f"{API_PREFIX}/projects/{{project_id}}/status")
+@app.patch(f"{API_PREFIX}/{{project_id}}/status")
 async def toggle_project_status(project_id: int, db: AsyncSession = Depends(get_db)) -> dict[str, str | int]:
     project = await db.get(Project, project_id)
     if project is None:
