@@ -13,11 +13,11 @@ from backend.models import (
 )
 
 
-async def update_part_status(
+async def log_production_action(
     part_id: int,
     user_id: int,
     stage_id: int,
-    action: str,
+    action_type: str,
     qty: int,
     db: AsyncSession,
 ) -> ProductionLog:
@@ -26,14 +26,14 @@ async def update_part_status(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Part not found")
 
     project_status = await db.scalar(select(Project.status).where(Project.id == part.project_id))
-    if project_status in {ProjectStatus.paused, "frozen"}:
+    if project_status == ProjectStatus.paused:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Project is frozen. Production actions are not allowed.",
+            detail="Project is paused. Production actions are not allowed.",
         )
 
     try:
-        production_action = ProductionAction(action)
+        production_action = ProductionAction(action_type)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported action") from exc
 
@@ -51,35 +51,44 @@ async def update_part_status(
     db.add(log)
     await db.flush()
 
-    if production_action == ProductionAction.done:
-        processed_total = await db.scalar(
+    last_route_stage_id = await db.scalar(
+        select(PartRoute.stage_id)
+        .where(PartRoute.part_id == part_id)
+        .order_by(PartRoute.order_index.desc())
+        .limit(1)
+    )
+
+    if last_route_stage_id is not None:
+        completed_on_last_stage = await db.scalar(
             select(func.coalesce(func.sum(ProductionLog.qty_processed), 0)).where(
                 ProductionLog.part_id == part_id,
-                ProductionLog.stage_id == stage_id,
+                ProductionLog.stage_id == last_route_stage_id,
                 ProductionLog.action == ProductionAction.done,
             )
         )
-
-        if int(processed_total or 0) >= part.qty_per_unit:
-            current_route = await db.scalar(
-                select(PartRoute)
-                .where(PartRoute.part_id == part_id, PartRoute.stage_id == stage_id)
-                .order_by(PartRoute.order_index.asc())
-            )
-            if current_route is not None:
-                next_route = await db.scalar(
-                    select(PartRoute)
-                    .where(
-                        PartRoute.part_id == part_id,
-                        PartRoute.order_index > current_route.order_index,
-                    )
-                    .order_by(PartRoute.order_index.asc())
-                )
-                if next_route is None:
-                    part.status = PartStatus.completed
-            else:
-                part.status = PartStatus.completed
+        if int(completed_on_last_stage or 0) >= part.qty_per_unit:
+            part.status = PartStatus.completed
+        else:
+            part.status = PartStatus.active
 
     await db.commit()
     await db.refresh(log)
     return log
+
+
+async def update_part_status(
+    part_id: int,
+    user_id: int,
+    stage_id: int,
+    action: str,
+    qty: int,
+    db: AsyncSession,
+) -> ProductionLog:
+    return await log_production_action(
+        part_id=part_id,
+        user_id=user_id,
+        stage_id=stage_id,
+        action_type=action,
+        qty=qty,
+        db=db,
+    )
