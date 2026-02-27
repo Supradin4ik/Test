@@ -31,8 +31,10 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+API_PREFIX = "/api"
 
 # Keep CORS fully open for local integration debugging.
+# NOTE: middleware must be registered before endpoint declarations.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -59,17 +61,17 @@ class ProductionLogResponse(BaseModel):
     timestamp: datetime
 
 
-@app.get("/api/ping")
+@app.get(f"{API_PREFIX}/ping")
 async def ping() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/api/health")
+@app.get(f"{API_PREFIX}/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.post("/api/projects/upload-spec")
+@app.post(f"{API_PREFIX}/projects/upload-spec")
 async def upload_spec(
     file: UploadFile = File(...),
     project_name: str = Form(...),
@@ -80,7 +82,7 @@ async def upload_spec(
     return result
 
 
-@app.get("/api/projects")
+@app.get(f"{API_PREFIX}/projects")
 async def get_projects(db: AsyncSession = Depends(get_db)) -> list[dict[str, str | int]]:
     projects = (
         await db.scalars(
@@ -101,7 +103,7 @@ async def get_projects(db: AsyncSession = Depends(get_db)) -> list[dict[str, str
     ]
 
 
-@app.get("/api/parts/{part_id}/history", response_model=list[ProductionLogResponse])
+@app.get(f"{API_PREFIX}/parts/{{part_id}}/history", response_model=list[ProductionLogResponse])
 async def get_part_history(part_id: int, db: AsyncSession = Depends(get_db)) -> list[ProductionLogResponse]:
     logs = (
         await db.scalars(
@@ -125,7 +127,7 @@ async def get_part_history(part_id: int, db: AsyncSession = Depends(get_db)) -> 
     ]
 
 
-@app.post("/api/parts/log-action", response_model=ProductionLogResponse)
+@app.post(f"{API_PREFIX}/parts/log-action", response_model=ProductionLogResponse)
 async def log_part_action(
     payload: ProductionActionRequest,
     db: AsyncSession = Depends(get_db),
@@ -150,7 +152,7 @@ async def log_part_action(
     )
 
 
-@app.get("/api/projects/{project_id}/stats")
+@app.get(f"{API_PREFIX}/projects/{{project_id}}/stats")
 async def get_project_stats(project_id: int, db: AsyncSession = Depends(get_db)) -> dict:
     project = await db.get(Project, project_id)
     if project is None:
@@ -224,7 +226,7 @@ async def get_project_stats(project_id: int, db: AsyncSession = Depends(get_db))
     }
 
 
-@app.patch("/api/projects/{project_id}/status")
+@app.patch(f"{API_PREFIX}/projects/{{project_id}}/status")
 async def toggle_project_status(project_id: int, db: AsyncSession = Depends(get_db)) -> dict[str, str | int]:
     project = await db.get(Project, project_id)
     if project is None:
