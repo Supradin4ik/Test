@@ -92,12 +92,14 @@ async def parse_spec_to_db(file_bytes, project_name: str, db: AsyncSession) -> d
         db.add(part)
         await db.flush()
 
-        db.add_all(
-            [
-                PartRoute(part_id=part.id, stage_id=laser_stage.id, order_index=1),
-                PartRoute(part_id=part.id, stage_id=bending_stage.id, order_index=2),
-            ]
-        )
+        material_name = str(row[material_column]).strip().lower()
+        if "мет" in material_name or "steel" in material_name or "metal" in material_name:
+            db.add_all(
+                [
+                    PartRoute(part_id=part.id, stage_id=laser_stage.id, order_index=1),
+                    PartRoute(part_id=part.id, stage_id=bending_stage.id, order_index=2),
+                ]
+            )
         parts_added += 1
 
     await db.commit()

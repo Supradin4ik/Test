@@ -23,6 +23,7 @@ class ProjectStatus(str, enum.Enum):
 class PartStatus(str, enum.Enum):
     active = "active"
     frozen = "frozen"
+    completed = "completed"
 
 
 class ProductionAction(str, enum.Enum):
