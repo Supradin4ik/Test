@@ -64,6 +64,11 @@ async def ping() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 @app.post("/api/projects/upload-spec/")
 async def upload_spec(
     file: UploadFile = File(...),
