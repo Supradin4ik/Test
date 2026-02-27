@@ -32,6 +32,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Keep CORS fully open for local integration debugging.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
