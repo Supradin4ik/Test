@@ -8,6 +8,86 @@ from app.database.db import get_connection
 router = APIRouter()
 
 
+def _table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
+    row = connection.execute(
+        """
+        SELECT 1
+        FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+        """,
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _get_quantity_column(connection: sqlite3.Connection) -> str | None:
+    columns = {
+        row[1] for row in connection.execute("PRAGMA table_info(type_batches)").fetchall()
+    }
+
+    if "qty_planned" in columns:
+        return "qty_planned"
+
+    for candidate in ("quantity", "qty", "quantity_plan"):
+        if candidate in columns:
+            return candidate
+
+    return None
+
+
+def _get_active_batch_blocks(connection: sqlite3.Connection) -> dict[int, sqlite3.Row]:
+    if not _table_exists(connection, "blocks"):
+        return {}
+
+    rows = connection.execute(
+        """
+        SELECT id, object_id, reason
+        FROM blocks
+        WHERE object_type = 'type_batch' AND status = 'active'
+        ORDER BY id
+        """
+    ).fetchall()
+
+    blocks_by_batch: dict[int, sqlite3.Row] = {}
+    for row in rows:
+        object_id = row["object_id"]
+        if object_id is None or object_id in blocks_by_batch:
+            continue
+        blocks_by_batch[object_id] = row
+
+    return blocks_by_batch
+
+
+def _resolve_batch_stage_info(stages: list[sqlite3.Row]) -> tuple[str, str]:
+    if not stages:
+        return "no_stages", "no_stages"
+
+    normalized = [
+        ((row["stage_name"] or "unknown_stage"), (row["status"] or "").strip().lower())
+        for row in stages
+    ]
+    statuses = [status for _, status in normalized]
+    first_pending_stage = next(
+        (stage_name for stage_name, status in normalized if status == "pending"),
+        None,
+    )
+
+    if statuses and all(status == "done" for status in statuses):
+        return "completed", "done"
+
+    if first_pending_stage is not None:
+        if all(status == "pending" for status in statuses):
+            return first_pending_stage, "pending"
+        if any(status == "done" for status in statuses):
+            return first_pending_stage, "in_progress"
+        return first_pending_stage, "in_progress"
+
+    if any(status == "done" for status in statuses):
+        return "completed", "done"
+
+    return "unknown", "unknown"
+
+
 @router.get("/summary/production")
 def get_production_summary() -> list[dict[str, object]]:
     connection = get_connection()
@@ -150,6 +230,86 @@ def get_production_summary() -> list[dict[str, object]]:
                         "status": project["status"],
                     },
                     "types": project_types_payload,
+                }
+            )
+
+        return response
+    finally:
+        connection.close()
+
+
+@router.get("/summary/batch-status")
+def get_batch_status_summary() -> list[dict[str, object]]:
+    connection = get_connection()
+    connection.row_factory = sqlite3.Row
+
+    try:
+        quantity_column = _get_quantity_column(connection)
+        quantity_expr = quantity_column if quantity_column else "NULL"
+
+        batches = connection.execute(
+            f"""
+            SELECT id, batch_number, {quantity_expr} AS quantity
+            FROM type_batches
+            ORDER BY batch_number, id
+            """
+        ).fetchall()
+
+        if not batches:
+            return []
+
+        batch_items = connection.execute(
+            "SELECT id, batch_id FROM batch_items ORDER BY batch_id, id"
+        ).fetchall()
+        stages = connection.execute(
+            """
+            SELECT id, batch_item_id, stage_name, status
+            FROM batch_item_stages
+            ORDER BY batch_item_id, id
+            """
+        ).fetchall()
+        active_blocks_by_batch = _get_active_batch_blocks(connection)
+
+        batch_item_ids_by_batch: dict[int, list[int]] = defaultdict(list)
+        for batch_item in batch_items:
+            batch_id = batch_item["batch_id"]
+            if batch_id is None:
+                continue
+            batch_item_ids_by_batch[batch_id].append(batch_item["id"])
+
+        stages_by_batch_item: dict[int, list[sqlite3.Row]] = defaultdict(list)
+        for stage in stages:
+            batch_item_id = stage["batch_item_id"]
+            if batch_item_id is None:
+                continue
+            stages_by_batch_item[batch_item_id].append(stage)
+
+        response: list[dict[str, object]] = []
+        for batch in batches:
+            batch_id = batch["id"]
+            batch_stages: list[sqlite3.Row] = []
+
+            for batch_item_id in batch_item_ids_by_batch.get(batch_id, []):
+                batch_stages.extend(stages_by_batch_item.get(batch_item_id, []))
+
+            current_stage, batch_status = _resolve_batch_stage_info(batch_stages)
+
+            active_block = active_blocks_by_batch.get(batch_id)
+            blocked = active_block is not None
+            block_reason = active_block["reason"] if active_block is not None else None
+
+            if blocked:
+                batch_status = "blocked"
+
+            response.append(
+                {
+                    "batch_id": batch_id,
+                    "batch_number": batch["batch_number"],
+                    "quantity": batch["quantity"],
+                    "current_stage": current_stage,
+                    "batch_status": batch_status,
+                    "blocked": blocked,
+                    "block_reason": block_reason,
                 }
             )
 
