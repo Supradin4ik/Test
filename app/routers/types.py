@@ -74,6 +74,17 @@ def get_type_page(type_id: int, request: Request) -> HTMLResponse:
         batch_ids = [row["id"] for row in batches]
         details = collect_batch_details(connection, batch_ids)
 
+
+        items = connection.execute(
+            """
+            SELECT id, part_number, name, metal, thickness, qty_per_product, total_qty
+            FROM items
+            WHERE type_id = ?
+            ORDER BY id
+            """,
+            (type_id,),
+        ).fetchall()
+
         batch_payload = []
         for row in batches:
             info = details.get(row["id"], {})
@@ -94,6 +105,7 @@ def get_type_page(type_id: int, request: Request) -> HTMLResponse:
                 "active_page": "projects",
                 "type_item": dict(type_row),
                 "batches": batch_payload,
+                "items": [dict(row) for row in items],
                 "breadcrumbs": [
                     {"label": "Projects", "href": "/projects"},
                     {"label": type_row["project_name"], "href": f"/projects/{type_row['project_id']}"},

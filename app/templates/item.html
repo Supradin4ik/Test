@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="stack-md">
+  <article class="ios-card detail-card">
+    <h2 class="section-title">{{ item.part_number }} — {{ item.name }}</h2>
+    <dl class="meta-list">
+      <div><dt>Metal</dt><dd>{{ item.metal or '-' }}</dd></div>
+      <div><dt>Thickness</dt><dd>{{ item.thickness or '-' }}</dd></div>
+      <div><dt>Qty per product</dt><dd>{{ item.qty_per_product or '-' }}</dd></div>
+      <div><dt>Total qty</dt><dd>{{ item.total_qty or '-' }}</dd></div>
+      <div><dt>Route</dt><dd>{{ route|join(' → ') if route else '-' }}</dd></div>
+    </dl>
+  </article>
+
+  <article class="ios-card">
+    <h3 class="section-title">Drawing</h3>
+    {% if drawing_found %}
+      <p class="ok-text">Drawing found</p>
+      <a class="btn-link" href="/drawing/{{ item.part_number }}" target="_blank" rel="noopener">Open PDF</a>
+    {% else %}
+      <p class="muted-text">Drawing not found</p>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

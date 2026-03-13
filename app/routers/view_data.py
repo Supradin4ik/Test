@@ -4,17 +4,19 @@ from collections import defaultdict
 from app.routers.summary import _get_active_batch_blocks, _get_quantity_column, _resolve_batch_stage_info
 
 STAGE_LABELS = {
-    "laser": "laser",
-    "bend": "bend",
-    "weld": "weld",
-    "completed": "completed",
+    "laser": "Лазер",
+    "bend": "Гибка",
+    "weld": "Сварка",
+    "completed": "Завершено",
+    "blocked": "Заблокировано",
 }
 
 STATUS_LABELS = {
-    "pending": "Pending",
-    "in_progress": "In progress",
-    "blocked": "Blocked",
-    "done": "Done",
+    "pending": "В ожидании",
+    "in_progress": "В работе",
+    "blocked": "Заблокировано",
+    "done": "Завершено",
+    "no_stages": "Нет этапов",
 }
 
 
@@ -44,7 +46,7 @@ def collect_batch_details(connection: sqlite3.Connection, batch_ids: list[int]) 
         ).fetchall()
 
     transfers = connection.execute(
-        f"SELECT id, batch_id, location_id FROM transfers WHERE batch_id IN ({placeholders}) ORDER BY id",
+        f"SELECT id, batch_id, location_id, comment, date FROM transfers WHERE batch_id IN ({placeholders}) ORDER BY id",
         batch_ids,
     ).fetchall()
     locations = connection.execute("SELECT id, name FROM locations").fetchall()
@@ -70,7 +72,7 @@ def collect_batch_details(connection: sqlite3.Connection, batch_ids: list[int]) 
         for item_id in item_ids_by_batch.get(batch_id, []):
             batch_stages.extend(stages_by_item.get(item_id, []))
 
-        current_stage, batch_status = _resolve_batch_stage_info(batch_stages)
+        current_stage_raw, batch_status = _resolve_batch_stage_info(batch_stages)
         done_count = sum(1 for s in batch_stages if (s["status"] or "").lower() == "done")
         total_count = len(batch_stages)
         progress = int((done_count / total_count) * 100) if total_count else 0
@@ -79,19 +81,25 @@ def collect_batch_details(connection: sqlite3.Connection, batch_ids: list[int]) 
         blocked = block is not None
         if blocked:
             batch_status = "blocked"
+            if current_stage_raw == "completed":
+                current_stage_raw = "blocked"
 
         latest_transfer = latest_transfer_by_batch.get(batch_id)
         location_name = "-"
+        last_transfer_comment = "-"
         if latest_transfer is not None:
             location_name = location_names.get(latest_transfer["location_id"], "-")
+            last_transfer_comment = latest_transfer["comment"] or "-"
 
         result[batch_id] = {
-            "current_stage": humanize_stage(current_stage),
+            "current_stage_key": current_stage_raw,
+            "current_stage": humanize_stage(current_stage_raw),
             "batch_status": batch_status,
             "batch_status_label": STATUS_LABELS.get(batch_status, batch_status),
             "blocked": blocked,
             "block_reason": block["reason"] if block is not None else "-",
             "current_location": location_name,
+            "last_transfer_comment": last_transfer_comment,
             "progress_percent": progress,
             "done_stages": done_count,
             "total_stages": total_count,

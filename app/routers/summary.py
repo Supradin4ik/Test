@@ -60,32 +60,32 @@ def _get_active_batch_blocks(connection: sqlite3.Connection) -> dict[int, sqlite
 
 def _resolve_batch_stage_info(stages: list[sqlite3.Row]) -> tuple[str, str]:
     if not stages:
-        return "no_stages", "no_stages"
+        return "no_stages", "pending"
 
     normalized = [
-        ((row["stage_name"] or "unknown_stage"), (row["status"] or "").strip().lower())
+        ((row["stage_name"] or "unknown_stage"), (row["status"] or "pending").strip().lower())
         for row in stages
     ]
     statuses = [status for _, status in normalized]
-    first_pending_stage = next(
-        (stage_name for stage_name, status in normalized if status == "pending"),
+
+    current_stage = next(
+        (stage_name for stage_name, status in normalized if status in {"in_progress", "pending"}),
         None,
     )
 
     if statuses and all(status == "done" for status in statuses):
         return "completed", "done"
 
-    if first_pending_stage is not None:
-        if all(status == "pending" for status in statuses):
-            return first_pending_stage, "pending"
-        if any(status == "done" for status in statuses):
-            return first_pending_stage, "in_progress"
-        return first_pending_stage, "in_progress"
+    if any(status == "in_progress" for status in statuses):
+        return current_stage or "unknown_stage", "in_progress"
 
-    if any(status == "done" for status in statuses):
-        return "completed", "done"
+    if any(status == "done" for status in statuses) and any(status == "pending" for status in statuses):
+        return current_stage or "unknown_stage", "in_progress"
 
-    return "unknown", "unknown"
+    if statuses and all(status == "pending" for status in statuses):
+        return current_stage or "unknown_stage", "pending"
+
+    return current_stage or "unknown_stage", "pending"
 
 
 @router.get("/summary/production")
@@ -300,6 +300,8 @@ def get_batch_status_summary() -> list[dict[str, object]]:
 
             if blocked:
                 batch_status = "blocked"
+                if current_stage == "completed":
+                    current_stage = "blocked"
 
             response.append(
                 {
