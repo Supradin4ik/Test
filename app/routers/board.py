@@ -19,9 +19,6 @@ _STAGE_LABELS = {
     "laser": "Лазер",
     "bend": "Гибка",
     "weld": "Сварка",
-    "completed": "Завершено",
-    "no_stages": "Нет этапов",
-    "unknown": "Неизвестно",
 }
 
 _STATUS_ROW_STYLES = {
@@ -124,9 +121,10 @@ def get_production_board() -> HTMLResponse:
 
         location_names = {location["id"]: location["name"] for location in locations}
 
-        grouped_rows: dict[str, dict[str, list[dict[str, object]]]] = defaultdict(
-            lambda: defaultdict(list)
-        )
+        grouped_rows: dict[
+            tuple[int | None, str],
+            dict[tuple[int | None, str], list[dict[str, object]]],
+        ] = defaultdict(lambda: defaultdict(list))
 
         for batch in batches:
             batch_id = batch["id"]
@@ -151,10 +149,10 @@ def get_production_board() -> HTMLResponse:
                 current_location = location_names.get(latest_transfer["location_id"], "-") or "-"
                 last_transfer_comment = latest_transfer["comment"] or "-"
 
-            project_name = batch["project_name"] or "Без проекта"
-            type_name = batch["type_name"] or "Без типа"
+            project_key = (batch["project_id"], batch["project_name"] or "Без проекта")
+            type_key = (batch["type_id"], batch["type_name"] or "Без типа")
 
-            grouped_rows[project_name][type_name].append(
+            grouped_rows[project_key][type_key].append(
                 {
                     "batch_number": batch["batch_number"] if batch["batch_number"] is not None else "-",
                     "quantity": batch["quantity"] if batch["quantity"] is not None else "-",
@@ -168,13 +166,13 @@ def get_production_board() -> HTMLResponse:
             )
 
         sections: list[str] = []
-        for project_name, project_types in grouped_rows.items():
+        for (_, project_name), project_types in grouped_rows.items():
             project_html = [
                 "<section class='project-block'>",
                 f"<h2>PROJECT: {html.escape(str(project_name))}</h2>",
             ]
 
-            for type_name, rows in project_types.items():
+            for (_, type_name), rows in project_types.items():
                 body_rows = []
                 for row in rows:
                     row_style = _STATUS_ROW_STYLES.get(str(row["batch_status"]), "")
