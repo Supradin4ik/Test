@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.routers.health import router as health_router
 from app.routers.projects import router as projects_router
@@ -8,6 +9,7 @@ from app.routers.board import router as board_router
 from app.routers.actions import router as actions_router
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(health_router)
 app.include_router(projects_router)

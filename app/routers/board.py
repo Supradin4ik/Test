@@ -2,8 +2,9 @@ import html
 import sqlite3
 from collections import defaultdict
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from app.database.db import get_connection
 from app.routers.summary import (
@@ -13,6 +14,7 @@ from app.routers.summary import (
 )
 
 router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
 
 
 _STAGE_LABELS = {
@@ -21,11 +23,18 @@ _STAGE_LABELS = {
     "weld": "Сварка",
 }
 
-_STATUS_ROW_STYLES = {
+_STATUS_CARD_STYLES = {
     "pending": "status-pending",
     "in_progress": "status-in-progress",
     "blocked": "status-blocked",
     "done": "status-done",
+}
+
+_STATUS_LABELS = {
+    "pending": "Pending",
+    "in_progress": "In Progress",
+    "blocked": "Blocked",
+    "done": "Done",
 }
 
 
@@ -37,7 +46,7 @@ def _humanize_stage(stage_name: str | None) -> str:
 
 
 @router.get("/board", response_class=HTMLResponse)
-def get_production_board() -> HTMLResponse:
+def get_production_board(request: Request) -> HTMLResponse:
     connection = get_connection()
     connection.row_factory = sqlite3.Row
 
@@ -63,13 +72,13 @@ def get_production_board() -> HTMLResponse:
         ).fetchall()
 
         if not batches:
-            return HTMLResponse(
-                content=(
-                    "<!DOCTYPE html><html lang='en'><head><meta charset='utf-8' />"
-                    "<title>Production Board</title></head><body>"
-                    "<h1>Production Board</h1><p>Данные по партиям отсутствуют.</p>"
-                    "</body></html>"
-                )
+            return templates.TemplateResponse(
+                request,
+                "layout.html",
+                {
+                    "page_title": "Production Board",
+                    "content": "<p class='muted-text'>Данные по партиям отсутствуют.</p>",
+                },
             )
 
         batch_items = connection.execute(
@@ -121,13 +130,6 @@ def get_production_board() -> HTMLResponse:
 
         location_names = {location["id"]: location["name"] for location in locations}
 
-        location_select_options = "".join(
-            (
-                f"<option value='{location['id']}'>{html.escape(str(location['name']))}</option>"
-                for location in locations
-            )
-        )
-
         grouped_rows: dict[
             tuple[int | None, str],
             dict[tuple[int | None, str], list[dict[str, object]]],
@@ -151,10 +153,8 @@ def get_production_board() -> HTMLResponse:
 
             latest_transfer = latest_transfer_by_batch.get(batch_id)
             current_location = "-"
-            last_transfer_comment = "-"
             if latest_transfer is not None:
                 current_location = location_names.get(latest_transfer["location_id"], "-") or "-"
-                last_transfer_comment = latest_transfer["comment"] or "-"
 
             project_key = (batch["project_id"], batch["project_name"] or "Без проекта")
             type_key = (batch["type_id"], batch["type_name"] or "Без типа")
@@ -166,142 +166,67 @@ def get_production_board() -> HTMLResponse:
                     "quantity": batch["quantity"] if batch["quantity"] is not None else "-",
                     "current_stage": _humanize_stage(current_stage),
                     "batch_status": batch_status,
-                    "blocked": "Да" if blocked else "Нет",
                     "block_reason": block_reason or "-",
                     "current_location": current_location,
-                    "last_transfer_comment": last_transfer_comment,
                 }
             )
 
         sections: list[str] = []
         for (_, project_name), project_types in grouped_rows.items():
             project_html = [
-                "<section class='project-block'>",
-                f"<h2>PROJECT: {html.escape(str(project_name))}</h2>",
+                "<section class='project-section stack-md'>",
+                f"<h2 class='section-title'>{html.escape(str(project_name))}</h2>",
             ]
 
             for (_, type_name), rows in project_types.items():
-                body_rows = []
+                cards: list[str] = []
                 for row in rows:
-                    status_class = _STATUS_ROW_STYLES.get(str(row["batch_status"]), "")
-                    row_class = " ".join([status_class, "batch-row-blocked" if str(row["blocked"]) == "Да" else ""]).strip()
+                    batch_status = str(row["batch_status"])
+                    status_class = _STATUS_CARD_STYLES.get(batch_status, "")
+                    status_label = _STATUS_LABELS.get(batch_status, batch_status)
 
-                    action_forms: list[str] = []
-                    if str(row["batch_status"]) == "in_progress":
-                        action_forms.append(
-                            "".join(
-                                [
-                                    f"<form method='post' action='/batch/{row['batch_id']}/complete-stage' class='inline-form'>",
-                                    "<input type='hidden' name='return_to_board' value='true' />",
-                                    "<button type='submit'>Завершить этап</button>",
-                                    "</form>",
-                                ]
-                            )
-                        )
-
-                    if str(row["batch_status"]) == "blocked":
-                        action_forms.append(
-                            "".join(
-                                [
-                                    f"<form method='post' action='/batch/{row['batch_id']}/unblock' class='inline-form'>",
-                                    "<input type='hidden' name='return_to_board' value='true' />",
-                                    "<button type='submit'>Снять блокировку</button>",
-                                    "</form>",
-                                ]
-                            )
-                        )
-                    else:
-                        action_forms.append(
-                            "".join(
-                                [
-                                    f"<form method='post' action='/batch/{row['batch_id']}/block' class='inline-form'>",
-                                    "<input type='hidden' name='return_to_board' value='true' />",
-                                    "<button type='submit'>Заблокировать</button>",
-                                    "</form>",
-                                ]
-                            )
-                        )
-
-                    action_forms.append(
+                    cards.append(
                         "".join(
                             [
-                                f"<form method='post' action='/batch/{row['batch_id']}/transfer' class='transfer-form'>",
-                                "<input type='hidden' name='return_to_board' value='true' />",
-                                f"<select name='location_id' required>{location_select_options}</select>",
-                                "<input type='text' name='comment' placeholder='Комментарий' />",
-                                "<button type='submit'>Передать</button>",
-                                "</form>",
-                            ]
-                        )
-                    )
-
-                    body_rows.append(
-                        "".join(
-                            [
-                                f"<tr class='{row_class}'>",
-                                f"<td>{html.escape(str(row['batch_number']))}</td>",
-                                f"<td>{html.escape(str(row['quantity']))}</td>",
-                                f"<td>{html.escape(str(row['current_stage']))}</td>",
-                                f"<td>{html.escape(str(row['batch_status']))}</td>",
-                                f"<td>{html.escape(str(row['blocked']))}</td>",
-                                f"<td>{html.escape(str(row['block_reason']))}</td>",
-                                f"<td>{html.escape(str(row['current_location']))}</td>",
-                                f"<td>{html.escape(str(row['last_transfer_comment']))}</td>",
-                                f"<td class='actions-cell'>{''.join(action_forms)}</td>",
-                                "</tr>",
+                                f"<article class='batch-card {status_class}'>",
+                                "<div class='batch-card-head'>",
+                                f"<h4>Batch {html.escape(str(row['batch_number']))}</h4>",
+                                f"<span class='status-badge {status_class}'>{html.escape(status_label)}</span>",
+                                "</div>",
+                                "<dl class='batch-meta'>",
+                                "<div><dt>Quantity</dt>",
+                                f"<dd>{html.escape(str(row['quantity']))}</dd></div>",
+                                "<div><dt>Current Stage</dt>",
+                                f"<dd>{html.escape(str(row['current_stage']))}</dd></div>",
+                                "<div><dt>Location</dt>",
+                                f"<dd>{html.escape(str(row['current_location']))}</dd></div>",
+                                "<div><dt>Block Reason</dt>",
+                                f"<dd class='muted-text'>{html.escape(str(row['block_reason']))}</dd></div>",
+                                "</dl>",
+                                "</article>",
                             ]
                         )
                     )
 
                 project_html.extend(
                     [
-                        "<div class='type-block'>",
-                        f"<h3>TYPE: {html.escape(str(type_name))}</h3>",
-                        "<table>",
-                        "<thead><tr><th>Batch</th><th>Quantity</th><th>Current Stage</th>"
-                        "<th>Status</th><th>Blocked</th><th>Block Reason</th>"
-                        "<th>Current Location</th><th>Last Transfer Comment</th><th>Управление</th></tr></thead>",
-                        f"<tbody>{''.join(body_rows)}</tbody>",
-                        "</table>",
-                        "</div>",
+                        "<section class='type-section stack-sm'>",
+                        f"<h3 class='type-title'>{html.escape(str(type_name))}</h3>",
+                        f"<div class='batch-grid'>{''.join(cards)}</div>",
+                        "</section>",
                     ]
                 )
 
             project_html.append("</section>")
             sections.append("\n".join(project_html))
 
-        page = f"""
-<!DOCTYPE html>
-<html lang=\"en\">
-  <head>
-    <meta charset=\"utf-8\" />
-    <title>Production Board</title>
-    <style>
-      body {{ font-family: Arial, sans-serif; margin: 20px; color: #222; }}
-      h1 {{ margin-bottom: 18px; }}
-      .project-block {{ margin-bottom: 28px; }}
-      .type-block {{ margin: 10px 0 18px 20px; }}
-      table {{ border-collapse: collapse; width: 100%; margin-top: 8px; }}
-      th, td {{ border: 1px solid #cfcfcf; padding: 8px; text-align: left; vertical-align: top; }}
-      thead th {{ background: #f7f7f7; }}
-      .status-pending {{ background-color: #f2f2f2; }}
-      .status-in-progress {{ background-color: #fff8cc; }}
-      .status-blocked {{ background-color: #ffe0e0; }}
-      .status-done {{ background-color: #e2f5e2; }}
-      .batch-row-blocked {{ font-weight: 600; border-left: 4px solid #d11a2a; }}
-      .actions-cell {{ min-width: 320px; }}
-      .inline-form {{ display: inline-block; margin-right: 6px; margin-bottom: 6px; }}
-      .transfer-form {{ display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }}
-      button {{ cursor: pointer; }}
-    </style>
-  </head>
-  <body>
-    <h1>Production Board</h1>
-    {''.join(sections)}
-  </body>
-</html>
-""".strip()
-
-        return HTMLResponse(content=page)
+        return templates.TemplateResponse(
+            request,
+            "layout.html",
+            {
+                "page_title": "Production Board",
+                "content": "".join(sections),
+            },
+        )
     finally:
         connection.close()
