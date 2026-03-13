@@ -51,6 +51,12 @@ def main() -> None:
         cursor.execute("SELECT * FROM batch_item_stages")
         batch_item_stages_rows = cursor.fetchall()
 
+        cursor.execute("SELECT * FROM locations")
+        locations_rows = cursor.fetchall()
+
+        cursor.execute("SELECT * FROM transfers")
+        transfers_rows = cursor.fetchall()
+
         print("Projects:")
         for row in projects:
             print(row)
@@ -95,6 +101,15 @@ def main() -> None:
             for row in batch_item_stages_rows:
                 print(row)
 
+
+        print("\nLocations:")
+        for row in locations_rows:
+            print(row)
+
+        print("\nTransfers:")
+        for row in transfers_rows:
+            print(row)
+
         print(f"\nКоличество проектов: {len(projects)}")
         print(f"Количество types: {len(types_rows)}")
         print(f"Количество items: {len(items_rows)}")
@@ -102,6 +117,8 @@ def main() -> None:
         print(f"Количество type_batches: {len(type_batches_rows)}")
         print(f"Количество batch_items: {len(batch_items_rows)}")
         print(f"Количество batch_item_stages: {len(batch_item_stages_rows)}")
+        print(f"Количество locations: {len(locations_rows)}")
+        print(f"Количество transfers: {len(transfers_rows)}")
     finally:
         connection.close()
 
