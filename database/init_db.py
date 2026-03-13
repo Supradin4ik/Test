@@ -12,8 +12,20 @@ def init_db() -> None:
 
     with sqlite3.connect(DB_PATH) as connection:
         connection.executescript(schema_sql)
+        cursor = connection.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+            """
+        )
+        tables = [row[0] for row in cursor.fetchall()]
 
-    print(f"Database created successfully: {DB_PATH}")
+    print("База production.db успешно инициализирована.")
+    print("Созданные таблицы:")
+    for table_name in tables:
+        print(f"- {table_name}")
 
 
 if __name__ == "__main__":

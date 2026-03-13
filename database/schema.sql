@@ -1,4 +1,4 @@
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     client TEXT,
@@ -6,7 +6,7 @@ CREATE TABLE projects (
     status TEXT
 );
 
-CREATE TABLE types (
+CREATE TABLE IF NOT EXISTS types (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER,
     type_name TEXT,
@@ -14,7 +14,7 @@ CREATE TABLE types (
     stage_size INTEGER
 );
 
-CREATE TABLE items (
+CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type_id INTEGER,
     part_number TEXT,
@@ -25,28 +25,28 @@ CREATE TABLE items (
     total_qty INTEGER
 );
 
-CREATE TABLE routes (
+CREATE TABLE IF NOT EXISTS routes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER,
     stage_name TEXT,
     order_index INTEGER
 );
 
-CREATE TABLE stages (
+CREATE TABLE IF NOT EXISTS stages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type_id INTEGER,
     stage_name TEXT,
     status TEXT
 );
 
-CREATE TABLE transfers (
+CREATE TABLE IF NOT EXISTS transfers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER,
     date TEXT,
     location TEXT
 );
 
-CREATE TABLE history (
+CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     object_type TEXT,
     object_id INTEGER,
