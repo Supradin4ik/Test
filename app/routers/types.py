@@ -7,7 +7,11 @@ from pydantic import BaseModel
 
 from app.database.db import get_connection
 from app.routers.view_data import collect_batch_details, quantity_expr
-from app.services.planning_service import recreate_type_plan
+from app.services.planning_service import (
+    ensure_types_done_manual_column,
+    get_type_planning_data,
+    recreate_type_plan,
+)
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -46,11 +50,13 @@ def get_types() -> list[dict[str, int | str]]:
 
 
 @router.get("/types/{type_id}", response_class=HTMLResponse)
-def get_type_page(type_id: int, request: Request) -> HTMLResponse:
+def get_type_page(type_id: int, request: Request, tab: str = "planning") -> HTMLResponse:
     connection = get_connection()
     connection.row_factory = sqlite3.Row
 
     try:
+        ensure_types_done_manual_column(connection)
+
         type_row = connection.execute(
             """
             SELECT t.id, t.project_id, t.type_name, t.quantity_plan, t.stage_size, p.name AS project_name
@@ -99,6 +105,9 @@ def get_type_page(type_id: int, request: Request) -> HTMLResponse:
                 }
             )
 
+        planning = get_type_planning_data(connection, type_id)
+        active_tab = tab if tab in {"overview", "planning", "batches", "items"} else "planning"
+
         return templates.TemplateResponse(
             "type.html",
             {
@@ -109,6 +118,8 @@ def get_type_page(type_id: int, request: Request) -> HTMLResponse:
                 "batches": batch_payload,
                 "has_plan": has_plan,
                 "items": [dict(row) for row in items],
+                "planning": planning,
+                "active_tab": active_tab,
                 "breadcrumbs": [
                     {"label": "Projects", "href": "/projects"},
                     {"label": type_row["project_name"], "href": f"/projects/{type_row['project_id']}"},
@@ -126,6 +137,8 @@ def plan_type_production(type_id: int) -> RedirectResponse:
     connection.row_factory = sqlite3.Row
 
     try:
+        ensure_types_done_manual_column(connection)
+
         type_row = connection.execute(
             "SELECT id, quantity_plan, stage_size FROM types WHERE id = ?",
             (type_id,),
@@ -141,7 +154,7 @@ def plan_type_production(type_id: int) -> RedirectResponse:
         )
         connection.commit()
 
-        return RedirectResponse(url=f"/types/{type_id}", status_code=303)
+        return RedirectResponse(url=f"/types/{type_id}?tab=planning", status_code=303)
     finally:
         connection.close()
 

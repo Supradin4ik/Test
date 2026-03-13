@@ -156,3 +156,97 @@ select, input[type="text"], input[type="file"] {
 .route-pending { border-left: 4px solid var(--pending); }
 .history-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
 .ok-text { color: var(--done); font-weight: 600; }
+
+.type-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.type-tab {
+  text-decoration: none;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-tab.active {
+  background: #007aff;
+  border-color: #007aff;
+  color: #fff;
+}
+
+.planning-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.planning-form label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+}
+
+.planning-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.planning-kpi-grid div {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.planning-kpi-grid strong {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.planning-kpi-grid span {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.planning-sheet-wrap {
+  padding: 14px 0;
+}
+
+.planning-sheet-wrap .section-title {
+  padding: 0 14px;
+}
+
+.planning-scroll {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.planning-table {
+  min-width: 720px;
+}
+
+.planning-table thead th {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 3;
+  min-width: 210px;
+}

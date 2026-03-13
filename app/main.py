@@ -10,6 +10,7 @@ from app.routers.actions import router as actions_router
 from app.routers.batches import router as batches_router
 from app.routers.items import router as items_router
 from app.routers.spec_import import router as spec_import_router
+from app.routers.planning import router as planning_router
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -23,6 +24,7 @@ app.include_router(actions_router)
 app.include_router(batches_router)
 app.include_router(items_router)
 app.include_router(spec_import_router)
+app.include_router(planning_router)
 
 
 @app.get("/")

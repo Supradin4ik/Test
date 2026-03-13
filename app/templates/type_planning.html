@@ -1,0 +1,93 @@
+<section class="stack-sm">
+  <article class="ios-card">
+    <h3 class="section-title">ПЛАНИРОВАНИЕ ПРОИЗВОДСТВА</h3>
+    <form method="post" action="/types/{{ type_item.id }}/planning/update" class="planning-form">
+      <label>
+        Количество изделий (quantity_plan)
+        <input type="number" name="quantity_plan" min="0" value="{{ planning.quantity_plan }}" required />
+      </label>
+      <label>
+        Размер этапа (stage_size)
+        <input type="number" name="stage_size" min="0" value="{{ planning.stage_size }}" required />
+      </label>
+      <label>
+        Готово вручную (done_manual)
+        <input type="number" name="done_manual" min="0" value="{{ planning.done_manual }}" required />
+      </label>
+      <div class="button-row">
+        <button type="submit" class="btn-primary">Обновить расчёт</button>
+      </div>
+    </form>
+    <div class="button-row">
+      <form method="post" action="/types/{{ type_item.id }}/plan-production">
+        <button type="submit" class="btn-primary">Планировать производство</button>
+      </form>
+      <form method="post" action="/types/{{ type_item.id }}/planning/replan">
+        <button type="submit" class="btn-primary">Перепланировать</button>
+      </form>
+    </div>
+  </article>
+
+  <article class="ios-card planning-kpi-grid">
+    <div><strong>Готово по этапам</strong><span>{{ planning.done_stages }}</span></div>
+    <div><strong>Готово итог</strong><span>{{ planning.done_total }}</span></div>
+    <div><strong>Осталось</strong><span>{{ planning.remaining }}</span></div>
+    <div><strong>Готовность %</strong><span>{{ planning.progress_percent }}%</span></div>
+  </article>
+
+  <article class="ios-card planning-sheet-wrap">
+    <h3 class="section-title">Этапы выпуска</h3>
+    <div class="planning-scroll">
+      <table class="data-table planning-table">
+        <thead>
+          <tr>
+            <th class="sticky-col">Показатель</th>
+            {% for stage in planning.stages %}
+            <th>Этап {{ stage.batch_number }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="sticky-col">Количество изделий в этапе</td>
+            {% for stage in planning.stages %}
+            <td>{{ stage.qty_planned }}</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td class="sticky-col">Статус этапа</td>
+            {% for stage in planning.stages %}
+            <td><span class="status-pill status-{{ stage.status_key }}">{{ stage.status_label }}</span></td>
+            {% endfor %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="ios-card planning-sheet-wrap">
+    <h3 class="section-title">Материалы по этапам</h3>
+    <div class="planning-scroll">
+      <table class="data-table planning-table">
+        <thead>
+          <tr>
+            <th class="sticky-col">Материал + толщина</th>
+            {% for stage in planning.stages %}
+            <th>Этап {{ stage.batch_number }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for material in planning.materials %}
+          <tr>
+            <td class="sticky-col">{{ material.material }}</td>
+            {% for cell in material.cells %}
+            <td><span class="status-pill status-{{ cell.status_key }}">{{ cell.status_label }}</span></td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

@@ -9,12 +9,19 @@
     </dl>
     <div class="button-row">
       <a class="btn-link" href="/types/{{ type_item.id }}/import-spec">Upload specification</a>
-      <form method="post" action="/types/{{ type_item.id }}/plan-production">
-        <button type="submit" class="btn-primary">{% if has_plan %}Перепланировать{% else %}Планировать производство{% endif %}</button>
-      </form>
     </div>
   </article>
 
+  <nav class="type-tabs" aria-label="Type tabs">
+    <a class="type-tab {% if active_tab == 'overview' %}active{% endif %}" href="/types/{{ type_item.id }}?tab=overview">Overview</a>
+    <a class="type-tab {% if active_tab == 'planning' %}active{% endif %}" href="/types/{{ type_item.id }}?tab=planning">Planning</a>
+    <a class="type-tab {% if active_tab == 'batches' %}active{% endif %}" href="/types/{{ type_item.id }}?tab=batches">Batches</a>
+    <a class="type-tab {% if active_tab == 'items' %}active{% endif %}" href="/types/{{ type_item.id }}?tab=items">Items</a>
+  </nav>
+
+  {% if active_tab == 'planning' %}
+    {% include "type_planning.html" %}
+  {% elif active_tab == 'batches' %}
   <section class="stack-sm">
     <h3 class="section-title">Batches</h3>
     <div class="card-grid">
@@ -34,7 +41,7 @@
       {% endfor %}
     </div>
   </section>
-
+  {% elif active_tab == 'items' %}
   <section class="stack-sm">
     <h3 class="section-title">Items</h3>
     <article class="ios-card">
@@ -64,5 +71,11 @@
       </table>
     </article>
   </section>
+  {% else %}
+  <article class="ios-card">
+    <h3 class="section-title">Overview</h3>
+    <p class="muted-text">Используйте вкладку Planning для производственного планирования, Batches для контроля этапов и Items для состава изделия.</p>
+  </article>
+  {% endif %}
 </section>
 {% endblock %}
