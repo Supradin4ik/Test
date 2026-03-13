@@ -13,7 +13,7 @@
     <h3 class="section-title">Batches</h3>
     <div class="card-grid">
       {% for batch in batches %}
-      <a class="ios-card batch-card-link" href="/batch/{{ batch.id }}">
+      <a class="ios-card batch-card-link {% if batch.blocked %}blocked-card{% endif %}" href="/batch/{{ batch.id }}">
         <div class="batch-head">
           <h4>Batch #{{ batch.batch_number }}</h4>
           <span class="status-pill status-{{ batch.batch_status }}">{{ batch.batch_status_label }}</span>
@@ -21,14 +21,27 @@
         <dl class="meta-list">
           <div><dt>Quantity</dt><dd>{{ batch.quantity }}</dd></div>
           <div><dt>Current stage</dt><dd>{{ batch.current_stage }}</dd></div>
-          <div><dt>Blocked</dt><dd>{{ "Yes" if batch.blocked else "No" }}</dd></div>
           <div><dt>Current location</dt><dd>{{ batch.current_location }}</dd></div>
+          <div><dt>Block reason</dt><dd>{{ batch.block_reason }}</dd></div>
         </dl>
-        <div>
-          <p class="muted-text">Progress</p>
-          <div class="progress-track"><span style="width: {{ batch.progress_percent }}%"></span></div>
-          <p class="progress-label">{{ batch.progress_percent }}%</p>
-        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="stack-sm">
+    <h3 class="section-title">Items</h3>
+    <div class="card-grid">
+      {% for item in items %}
+      <a class="ios-card" href="/items/{{ item.id }}">
+        <h4>{{ item.part_number }}</h4>
+        <p class="muted-text">{{ item.name }}</p>
+        <dl class="meta-list">
+          <div><dt>Metal</dt><dd>{{ item.metal or '-' }}</dd></div>
+          <div><dt>Thickness</dt><dd>{{ item.thickness or '-' }}</dd></div>
+          <div><dt>Qty per product</dt><dd>{{ item.qty_per_product or '-' }}</dd></div>
+          <div><dt>Total qty</dt><dd>{{ item.total_qty or '-' }}</dd></div>
+        </dl>
       </a>
       {% endfor %}
     </div>

@@ -4,12 +4,15 @@
   <article class="ios-card detail-card">
     <h2 class="section-title">Batch #{{ batch.batch_number }}</h2>
     <dl class="meta-list">
-      <div><dt>TYPE</dt><dd>{{ batch.type_name }}</dd></div>
+      <div><dt>Project</dt><dd>{{ batch.project_name }}</dd></div>
+      <div><dt>Type</dt><dd>{{ batch.type_name }}</dd></div>
       <div><dt>Quantity</dt><dd>{{ batch.quantity }}</dd></div>
       <div><dt>Current stage</dt><dd>{{ batch.current_stage }}</dd></div>
+      <div><dt>Current location</dt><dd>{{ batch.current_location }}</dd></div>
       <div><dt>Batch status</dt><dd><span class="status-pill status-{{ batch.batch_status }}">{{ batch.batch_status_label }}</span></dd></div>
-      <div><dt>Blocked</dt><dd>{{ 'Yes' if batch.blocked else 'No' }}</dd></div>
+      <div><dt>Blocked</dt><dd>{{ 'Да' if batch.blocked else 'Нет' }}</dd></div>
       <div><dt>Block reason</dt><dd>{{ batch.block_reason }}</dd></div>
+      <div><dt>Last transfer comment</dt><dd>{{ batch.last_transfer_comment }}</dd></div>
     </dl>
   </article>
 
@@ -19,18 +22,22 @@
       {% for stage in route_stages %}
       <li class="route-{{ stage.state }}">
         <span>{{ stage.stage_name }}</span>
-        <strong>{{ stage.symbol }}</strong>
+        <span class="stage-status">{{ stage.status }}</span>
       </li>
       {% endfor %}
     </ul>
-    <form method="post" action="/batch/{{ batch.id }}/complete-stage" class="inline-form">
-      <input type="hidden" name="return_to_batch" value="true" />
-      <button type="submit" class="btn-primary">Complete Stage</button>
-    </form>
+    <div class="button-row">
+      <form method="post" action="/batch/{{ batch.id }}/start-stage" class="inline-form">
+        <button type="submit" class="btn-primary">Start Stage</button>
+      </form>
+      <form method="post" action="/batch/{{ batch.id }}/complete-stage" class="inline-form">
+        <button type="submit" class="btn-primary">Complete Stage</button>
+      </form>
+    </div>
   </article>
 
   <article class="ios-card">
-    <h3 class="section-title">Move batch</h3>
+    <h3 class="section-title">Move Batch</h3>
     <form method="post" action="/batch/{{ batch.id }}/transfer" class="stack-sm">
       <label for="location_id">Select location</label>
       <select id="location_id" name="location_id" required>
@@ -39,9 +46,19 @@
         {% endfor %}
       </select>
       <input type="text" name="comment" placeholder="Comment" />
-      <input type="hidden" name="return_to_batch" value="true" />
       <button type="submit" class="btn-primary">Transfer</button>
     </form>
+  </article>
+
+  <article class="ios-card">
+    <h3 class="section-title">Production History</h3>
+    <ul class="history-list">
+      {% for event in history %}
+      <li>{{ event.text }}</li>
+      {% else %}
+      <li>История пока пустая</li>
+      {% endfor %}
+    </ul>
   </article>
 </section>
 {% endblock %}

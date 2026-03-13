@@ -10,7 +10,7 @@
       <h4 class="type-title">{{ type_item.type_name }}</h4>
       <div class="card-grid">
         {% for batch in type_item.batches %}
-        <a class="ios-card batch-card-link" href="/batch/{{ batch.id }}">
+        <a class="ios-card batch-card-link {% if batch.blocked %}blocked-card{% endif %}" href="/batch/{{ batch.id }}">
           <div class="batch-head">
             <h5>Batch #{{ batch.batch_number }}</h5>
             <span class="status-pill status-{{ batch.batch_status }}">{{ batch.batch_status_label }}</span>
@@ -18,11 +18,11 @@
           <dl class="meta-list">
             <div><dt>Quantity</dt><dd>{{ batch.quantity }}</dd></div>
             <div><dt>Current stage</dt><dd>{{ batch.current_stage }}</dd></div>
-            <div><dt>Location</dt><dd>{{ batch.current_location }}</dd></div>
-            <div><dt>Blocked</dt><dd>{{ 'Yes' if batch.blocked else 'No' }}</dd></div>
+            <div><dt>Current location</dt><dd>{{ batch.current_location }}</dd></div>
+            <div><dt>Block reason</dt><dd>{{ batch.block_reason }}</dd></div>
           </dl>
           <div class="progress-track"><span style="width: {{ batch.progress_percent }}%"></span></div>
-          <p class="progress-label">{{ batch.progress_percent }}%</p>
+          <p class="progress-label">Progress: {{ batch.progress_percent }}%</p>
         </a>
         {% endfor %}
       </div>
