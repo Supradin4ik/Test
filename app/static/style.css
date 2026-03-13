@@ -1,0 +1,172 @@
+:root {
+  --bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --text: #1d1d1f;
+  --muted: #86868b;
+  --border: #e5e5ea;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --status-pending: #8e8e93;
+  --status-in-progress: #ffcc00;
+  --status-blocked: #ff3b30;
+  --status-done: #34c759;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid var(--border);
+  background: rgba(245, 245, 247, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.site-header h1 {
+  margin: 0;
+  padding: 20px 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.page-container {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.page-content {
+  padding: 24px 0 40px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.type-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.project-section,
+.type-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-md {
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.stack-sm {
+  gap: 12px;
+}
+
+.batch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.batch-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+  border-left: 5px solid var(--status-pending);
+}
+
+.batch-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.batch-card h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.batch-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.batch-meta div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #f0f0f2;
+  padding-top: 8px;
+}
+
+.batch-meta dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.batch-meta dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.muted-text {
+  color: var(--muted);
+}
+
+.status-pending {
+  border-color: var(--status-pending);
+  background-color: #8e8e93;
+}
+
+.status-in-progress {
+  border-color: var(--status-in-progress);
+  background-color: #f4b400;
+}
+
+.status-blocked {
+  border-color: var(--status-blocked);
+  background-color: #e94238;
+}
+
+.status-done {
+  border-color: var(--status-done);
+  background-color: #2eb350;
+}
+
+.batch-card.status-pending,
+.batch-card.status-in-progress,
+.batch-card.status-blocked,
+.batch-card.status-done {
+  background: var(--card-bg);
+}
+
+.batch-card.status-blocked {
+  box-shadow: 0 3px 14px rgba(233, 66, 56, 0.2);
+}

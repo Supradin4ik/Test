@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ page_title or "MES Production System" }}</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="page-container">
+        <h1>MES Production System</h1>
+      </div>
+    </header>
+    <main class="page-container page-content">
+      {{ content | safe }}
+    </main>
+  </body>
+</html>
