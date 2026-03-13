@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS transfers (
     FOREIGN KEY (location_id) REFERENCES locations(id)
 );
 
+-- Operational constraints and temporary stops.
 CREATE TABLE IF NOT EXISTS blocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     object_type TEXT,

@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent
 SCHEMA_PATH = BASE_DIR / "schema.sql"
 DB_PATH = BASE_DIR.parent / "production.db"
 
-TARGET_TABLES = {
+REQUIRED_TABLES = {
     "projects",
     "types",
     "items",
@@ -20,47 +20,16 @@ TARGET_TABLES = {
 }
 
 
-def table_exists(connection: sqlite3.Connection, table_name: str) -> bool:
-    cursor = connection.execute(
-        """
-        SELECT 1
-        FROM sqlite_master
-        WHERE type = 'table' AND name = ?
-        """,
-        (table_name,),
-    )
-    return cursor.fetchone() is not None
-
-
-def get_table_columns(connection: sqlite3.Connection, table_name: str) -> set[str]:
-    cursor = connection.execute(f"PRAGMA table_info({table_name})")
-    return {row[1] for row in cursor.fetchall()}
-
-
-def prepare_schema(connection: sqlite3.Connection) -> None:
-    # Удаляем таблицы, которые больше не используются в batch-модели v1.
-    for table_name in ("stages", "history"):
-        connection.execute(f"DROP TABLE IF EXISTS {table_name}")
-
-    # Проверяем transfers на соответствие новой структуре.
-    if table_exists(connection, "transfers"):
-        transfer_columns = get_table_columns(connection, "transfers")
-        expected_columns = {"id", "batch_id", "date", "location_id", "comment"}
-        if transfer_columns != expected_columns:
-            connection.execute("DROP TABLE IF EXISTS transfers")
-
-    # Удаляем любые лишние пользовательские таблицы, чтобы итоговая схема была целевой.
+def get_existing_tables(connection: sqlite3.Connection) -> list[str]:
     cursor = connection.execute(
         """
         SELECT name
         FROM sqlite_master
         WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+        ORDER BY name
         """
     )
-    existing_tables = {row[0] for row in cursor.fetchall()}
-    extra_tables = sorted(existing_tables - TARGET_TABLES)
-    for table_name in extra_tables:
-        connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+    return [row[0] for row in cursor.fetchall()]
 
 
 def init_db() -> None:
@@ -68,23 +37,22 @@ def init_db() -> None:
 
     with sqlite3.connect(DB_PATH) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
-        prepare_schema(connection)
         connection.executescript(schema_sql)
+        tables = get_existing_tables(connection)
 
-        cursor = connection.execute(
-            """
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-            ORDER BY name
-            """
-        )
-        tables = [row[0] for row in cursor.fetchall()]
+    missing_tables = sorted(REQUIRED_TABLES - set(tables))
 
     print("База production.db успешно инициализирована.")
     print("Актуальные таблицы:")
     for table_name in tables:
         print(f"- {table_name}")
+
+    if missing_tables:
+        print("Не созданы обязательные таблицы:")
+        for table_name in missing_tables:
+            print(f"- {table_name}")
+    else:
+        print("Все обязательные таблицы созданы, включая blocks.")
 
 
 if __name__ == "__main__":
