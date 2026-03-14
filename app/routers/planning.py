@@ -81,6 +81,11 @@ def replan_type_production(type_id: int) -> RedirectResponse:
             quantity_plan=max(type_row["quantity_plan"], 0),
             stage_size=max(type_row["stage_size"], 0),
         )
+        recalculate_items_total_qty(
+            connection,
+            type_id=type_id,
+            quantity_plan=max(type_row["quantity_plan"], 0),
+        )
         connection.commit()
         return RedirectResponse(url=f"/types/{type_id}?tab=planning", status_code=303)
     finally:
